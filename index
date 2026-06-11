@@ -4,114 +4,127 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transparent QR Code Generator</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        /* Checkerboard background to preview transparency */
+        .checkerboard {
+            background-color: #f0f0f0;
+            background-image: linear-gradient(45deg, #e0e0e0 25%, transparent 25%, transparent 75%, #e0e0e0 75%, #e0e0e0),
+                              linear-gradient(45deg, #e0e0e0 25%, #f0f0f0 25%, #f0f0f0 75%, #e0e0e0 75%, #e0e0e0);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-center p-6 font-sans">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-center p-6">
 
-    <div class="w-full max-w-md bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700 backdrop-blur-sm">
-        <h1 class="text-2xl font-bold text-center mb-6 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-            Transparent QR Generator
+    <div class="w-full max-w-md bg-slate-800 rounded-2xl shadow-xl p-6 border border-slate-700">
+        <h1 class="text-2xl font-bold text-center mb-2 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+            ClearQR Generator
         </h1>
+        <p class="text-slate-400 text-sm text-center mb-6">Generate high-res PNGs with transparent backgrounds.</p>
 
         <div class="space-y-4">
             <div>
-                <label for="url-input" class="block text-sm font-medium text-slate-400 mb-2">Enter URL</label>
-                <input 
-                    type="url" 
-                    id="url-input" 
-                    placeholder="https://example.com" 
-                    class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 text-slate-100 placeholder-slate-500 transition-all"
-                />
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Target URL</label>
+                <input type="url" id="url-input" placeholder="https://example.com" 
+                       class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-cyan-500 text-slate-100 transition-colors">
             </div>
 
-            <button 
-                id="generate-btn" 
-                class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:shadow-cyan-500/20 transition-all cursor-pointer text-center"
-            >
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">QR Code Color</label>
+                <div class="flex gap-4">
+                    <input type="color" id="color-input" value="#000000" class="w-12 h-10 bg-transparent cursor-pointer rounded">
+                    <span class="text-sm text-slate-400 self-center">Pick a color that contrasts with your target design.</span>
+                </div>
+            </div>
+
+            <button id="generate-btn" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium py-3 rounded-lg transition-all shadow-lg shadow-cyan-500/20">
                 Generate QR Code
             </button>
         </div>
 
-        <div id="output-container" class="mt-8 flex flex-col items-center hidden animate-fade-in">
-            <div class="p-4 rounded-xl border border-slate-700 bg-[linear-gradient(45deg,#242f42_25%,transparent_25%),linear-gradient(-45deg,#242f42_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#242f42_75%),linear-gradient(-45deg,transparent_75%,#242f42_75ctx)] bg-[size:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px] bg-slate-950">
-                <canvas id="qr-canvas"></canvas>
+        <div id="output-container" class="mt-8 hidden flex flex-col items-center space-y-4">
+            <div class="checkerboard p-4 rounded-xl shadow-inner inline-block">
+                <canvas id="qr-canvas" class="max-w-full h-auto"></canvas>
             </div>
             
-            <button 
-                id="download-btn" 
-                class="mt-6 w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-                <span>Download .png</span>
+            <button id="download-btn" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download .PNG
             </button>
         </div>
     </div>
 
     <script>
         const urlInput = document.getElementById('url-input');
+        const colorInput = document.getElementById('color-input');
         const generateBtn = document.getElementById('generate-btn');
         const outputContainer = document.getElementById('output-container');
         const canvas = document.getElementById('qr-canvas');
         const downloadBtn = document.getElementById('download-btn');
 
-        generateBtn.addEventListener('click', generateQR);
-        
-        // Also generate on 'Enter' key press
-        urlInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') generateQR();
-        });
-
+        // Main Generation Logic
         function generateQR() {
             const url = urlInput.value.trim();
-            
+            const qrColor = colorInput.value;
+
             if (!url) {
-                alert('Please enter a valid URL');
+                alert('Please drop a valid URL in first!');
                 return;
             }
 
-            // QRCode configuration
+            // Options mapping for node-qrcode
             const options = {
-                width: 300,
-                margin: 2,
+                width: 600,       // Crisp high-res output
+                margin: 2,        // Quiet zone border thickness
                 color: {
-                    dark: '#000000',  // Black QR modules (change to #ffffff if you want a white transparent QR)
-                    light: '#00000000' // Fully transparent alpha channel background
-                },
-                errorCorrectionLevel: 'H' // High error correction
+                    dark: qrColor,       // Custom chosen color
+                    light: '#00000000'   // Exact Hex code for pure transparency
+                }
             };
 
-            // Render to canvas
             QRCode.toCanvas(canvas, url, options, function (error) {
                 if (error) {
                     console.error(error);
-                    alert('Failed to generate QR code.');
+                    alert('Something went wrong generating the QR code.');
                     return;
                 }
-                // Reveal the container once generated
+                // Unhide the download and preview area
                 outputContainer.classList.remove('hidden');
+                outputContainer.scrollIntoView({ behavior: 'smooth' });
             });
         }
 
-        // Handle the download logic
-        downloadBtn.addEventListener('click', () => {
-            // Convert canvas to data URL (defaults to PNG format)
-            const image = canvas.toDataURL("image/png");
-            
-            // Create a temporary anchor element to trigger the download
-            const link = document.createElement('a');
-            
-            // Clean up the filename from the URL domain
-            let fileName = 'qrcode';
+        // Seamless Download Trigger
+        function downloadQR() {
+            const url = urlInput.value.trim();
+            // Create a clean filename based on domain or just timestamp
+            let fileName = 'qrcode-transparent.png';
             try {
-                const domain = new URL(urlInput.value.trim()).hostname;
-                fileName = `qr-${domain}`;
+                const domain = new URL(url).hostname;
+                fileName = `qr-${domain}.png`;
             } catch(e) {
-                fileName = 'transparent-qrcode';
+                // Fallback if URL parser fails on raw text strings
+                fileName = `qr-${Date.now()}.png`;
             }
 
-            link.download = `${fileName}.png`;
-            link.href = image;
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = canvas.toDataURL('image/png');
             link.click();
+        }
+
+        // Event Listeners
+        generateBtn.addEventListener('click', generateQR);
+        downloadBtn.addEventListener('click', downloadQR);
+
+        // Also trigger on pressing 'Enter' inside the input box
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') generateQR();
         });
     </script>
 </body>
